@@ -8,6 +8,9 @@ import java.util.regex.Pattern;
 /**
  * Created by JoseM on 11/12/2016.
  */
+
+//TODO: Threads
+//TODO: Invalid message format for register and login
 public class Server {
 
     public static void main(String[] args) throws IOException {
@@ -21,6 +24,7 @@ public class Server {
         String fromClient;
         String[] parts = null;
         String[] clientParts = null;
+        String[] databaseParts = null;
         ArrayList<String> fileList = new ArrayList(); //when creating new user, add user info to list
 
         Pattern username = Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE);
@@ -74,16 +78,21 @@ public class Server {
             e.printStackTrace();
         }
 
+        try{
+            fileWriter = new PrintWriter(filePath);
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+
         fromClient = inFromClient.readLine();
         clientParts = fromClient.split("--");
         //message format check
-        boolean counter = true;
         if (clientParts[0].equals("CREATENEWUSER")) { //parts are being formatted correctly
             for (int i = 0; i < fileList.size(); i++) {
                 parts = fileList.get(i).split(":");
                 if (parts[0].equals(clientParts[1])) {
-                    outToClient.println("RESPONSE--CREATENEWUSER--USERALREADYEXISTS");
-                    counter = false;
+                    outToClient.println("RESPONSE--CREATENEWUSER--USERALREADYEXISTS--");
+                    System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--USERALREADYEXISTS--");
                     break;
                 }
             }
@@ -103,25 +112,62 @@ public class Server {
             } else {
                 pwCreds = false;
             }
-            if (clientParts[1].equals("") || clientParts[1].length() >= 10 || u == false) {
-                outToClient.println("RESPONSE--CREATENEWUSER--INVALIDUSERNAME");
-                counter = false;
-            } else if (clientParts[2].equals("") || clientParts[2].length() >= 10 || pwCreds == false) {
-                outToClient.println("RESPONSE--CREATENEWUSER--INVALIDPASSWORD");
-                counter = false;
+
+            if (clientParts[1].equals("") || clientParts[1].length() >= 10 || u) {
+                outToClient.println("RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
+                System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
+            } else if (clientParts[2].equals("") || clientParts[2].length() >= 10 || pwCreds) {
+                outToClient.println("RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
+                System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
             }
-        } else if (counter) {
-            outToClient.println("RESPONSE--CREATENEWUSER--SUCCESS");
-            fileWriter.println(clientParts[1] + ":" + clientParts[2] + ":0:0:0");
-            fileList.add(clientParts[1] + ":" + clientParts[2] + ":0:0:0");
+            else {
+                outToClient.println("RESPONSE--CREATENEWUSER--SUCCESS--");
+                System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--SUCCESS--");
+                fileWriter.write(clientParts[1] + ":" + clientParts[2] + ":0:0:0"); //// FIXME: 11/16/2016 Not writing to file
+                fileList.add(clientParts[1] + ":" + clientParts[2] + ":0:0:0");
+            }
         }
 
+        clientParts = fromClient.split("--");
+        int counterU = 0; //increment by one if found in list and stores value where found for countInd
+        int counterP = 0;
+        int counterInd = 0;
+        if(clientParts[0].equals("LOGIN")){
+            System.out.println(clientParts[1]);
+            System.out.println(fileList.toString());
+            for(int i = 0; i<fileList.size();i++){
+                databaseParts = fileList.get(i).split(":");
+                System.out.println(databaseParts[1]);
+                if(clientParts[1].equals(databaseParts[1])){
+                    counterU++;
+                    counterInd=i;
 
+                }
+            }
+            if(databaseParts!=null && clientParts[2].equals(databaseParts[counterInd])){ //// FIXME: 11/16/2016
+                counterP++;
+            }
+
+            if(counterU==0 || fileList==null){
+                outToClient.println("RESPONSE--LOGIN--UNKNOWNUSER--");
+                System.out.println("uknow user");
+            }
+            else if(counterP==0){
+                outToClient.println("RESPONSE--LOGIN--INVALIDPASSWORD");
+                System.out.println("bad password");
+
+            }
+
+            if(counterP==1 && counterU==1){
+                outToClient.println("RESPONSE--LOGIN--SUCCESS--");
+                System.out.println("success");
+                //TODO: Check if user logged in
+            }
+            //TODO: check if user already logged in (before success)
+        }
 
         outToClient.close();
         inFromClient.close();
-
-        //comment
 
     }
 
