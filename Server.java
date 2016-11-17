@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,7 +44,7 @@ public class Server {
             System.out.println("ERROR 404: FILE NOT FOUND!");
         }
 
-        while ((line = fileReader.readLine()) != null) {
+        while ((line = fileReader.readLine()) != null) { //displaying registered users and adding to array
             fileList.add(line);
             parts = line.split(":");
             System.out.println("Added user: " + parts[0]);
@@ -79,7 +80,7 @@ public class Server {
         }
 
         try{
-            fileWriter = new PrintWriter(filePath);
+            fileWriter = new PrintWriter(new BufferedWriter(new FileWriter(filePath, true)));
         }catch(IOException e){
             e.printStackTrace();
         }
@@ -121,9 +122,10 @@ public class Server {
                 System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
             }
             else {
+                System.out.println(clientParts[1]);
                 outToClient.println("RESPONSE--CREATENEWUSER--SUCCESS--");
                 System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--SUCCESS--");
-                fileWriter.write(clientParts[1] + ":" + clientParts[2] + ":0:0:0"); //// FIXME: 11/16/2016 Not writing to file
+                fileWriter.println(clientParts[1] + ":" + clientParts[2] + ":0:0:0"); //// FIXME: 11/16/2016 Not writing to file
                 fileList.add(clientParts[1] + ":" + clientParts[2] + ":0:0:0");
             }
         }
@@ -131,43 +133,45 @@ public class Server {
         clientParts = fromClient.split("--");
         int counterU = 0; //increment by one if found in list and stores value where found for countInd
         int counterP = 0;
-        int counterInd = 0;
         if(clientParts[0].equals("LOGIN")){
-            System.out.println(clientParts[1]);
-            System.out.println(fileList.toString());
+            String tempPassword = "";
             for(int i = 0; i<fileList.size();i++){
                 databaseParts = fileList.get(i).split(":");
-                System.out.println(databaseParts[1]);
-                if(clientParts[1].equals(databaseParts[1])){
+                System.out.println(databaseParts[0]);
+                if(clientParts[1].equals(databaseParts[0])){
                     counterU++;
-                    counterInd=i;
+                    tempPassword=databaseParts[1];
 
                 }
             }
-            if(databaseParts!=null && clientParts[2].equals(databaseParts[counterInd])){ //// FIXME: 11/16/2016
+            if(databaseParts!=null && clientParts[2].equals(tempPassword)){ //// FIXME: 11/16/2016
                 counterP++;
             }
 
             if(counterU==0 || fileList==null){
                 outToClient.println("RESPONSE--LOGIN--UNKNOWNUSER--");
-                System.out.println("uknow user");
+                System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--UNKNOWNUSER--");
             }
             else if(counterP==0){
-                outToClient.println("RESPONSE--LOGIN--INVALIDPASSWORD");
-                System.out.println("bad password");
+                outToClient.println("RESPONSE--LOGIN--INVALIDPASSWORD--");
+                System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--INVALIDPASSWORD--");
 
             }
 
             if(counterP==1 && counterU==1){
                 outToClient.println("RESPONSE--LOGIN--SUCCESS--");
-                System.out.println("success");
+                System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--SUCCESS--");
                 //TODO: Check if user logged in
             }
             //TODO: check if user already logged in (before success)
         }
 
+
+
         outToClient.close();
         inFromClient.close();
+        fileWriter.close();
+        fileReader.close();
 
     }
 
