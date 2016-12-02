@@ -14,6 +14,8 @@ import java.util.regex.Pattern;
 
 //TODO: Write to file after user exits
 public class Server implements Runnable {
+    static int counter = 1; //aesthetics
+
     ServerSocket serverSocket = null;
     private Thread thread;
     Socket soc = null;
@@ -52,6 +54,8 @@ public class Server implements Runnable {
 
         while (true) {
             Socket socket = serverSocket.accept();
+            System.out.println("Connection accepted! Thread " + counter + " now starting..." );
+                counter++;
             Server server = new Server();
             server.setSock(socket);
             Thread thread = new Thread(server);
@@ -104,10 +108,6 @@ public class Server implements Runnable {
 
 
         while (true) {//change this to a variable latter but need to make it to infinite loop for now to test things
-
-
-            String filePath = new String("C:\\Users\\Sam Klarquist\\Desktop\\" +
-                    "file1.sql");
 
             //change the file path to check on your side
       /*  try {
@@ -255,6 +255,7 @@ public class Server implements Runnable {
                     String key = addGameKey(clientParts[1]);
                     outToClient.println("RESPONSE--STARTNEWGAME--SUCCESS--" + key);
                     //if success, set player
+                    //set private string to key
 
 
                 }
@@ -278,9 +279,11 @@ public class Server implements Runnable {
             if (clientParts[0].equals("ALLPARTICIPANTSHAVEJOINED")) {
 
                 outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTLOGGEDIN");
+                //if logged in and have same game key for 2 peeps
                 outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--INVALIDGAMETOKEN");
-
+                //not equal game leader gametoken
                 outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTGAMELEADER");
+                //private boolean
 
             }
 
@@ -322,8 +325,8 @@ public class Server implements Runnable {
 
     static public void readQuestions() throws FileNotFoundException, IOException {
 
-        String filePath = new String("C:\\Users\\Sam Klarquist\\Desktop\\" +
-                "file2.sql");
+        String filePath = new String("C:\\Users\\JoseM\\Desktop\\cs180\\Projects\\" +
+                "Project-4---Server\\database\\questions.txt");
         BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
 
         String line;
@@ -341,7 +344,8 @@ public class Server implements Runnable {
     }
 
     static public void readUserList() throws FileNotFoundException, IOException {
-        String filePath = new String("C:\\Users\\Sam Klarquist\\Desktop\\file1.sql");
+        String filePath = new String("C:\\Users\\JoseM\\Desktop\\cs180\\Projects" +
+                "\\Project-4---Server\\database\\database.txt");
         BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
         LoginList = new ArrayList();
         String line;
