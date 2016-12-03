@@ -36,6 +36,10 @@ public class Server implements Runnable {
     String uppercaseLetters = "QWERTYUIOPASDFGHJKLZXCVBNM";
     String alphabet = uppercaseLetters + lowercaseLetters;
 
+    private String gameKey;
+    private boolean isLeader;
+    static int NextScreenCounter;
+
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(6000);
 
@@ -176,6 +180,9 @@ public class Server implements Runnable {
                 } else if (searchForPassword(clientParts[2]) != -1 || clientParts[2].length() >= 10 || pwCreds) {
                     outToClient.println("RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
                     System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
+                } else if(clientParts[0].equals("")||clientParts[1].equals("") ||
+                        clientParts[2].equals("")|| clientParts[2]==null){
+                    outToClient.println("RESPONSE--CREATENEWUSER--INVALIDMESSAGEFORMAT");
                 } else {
                     System.out.println(clientParts[1]);
                     outToClient.println("RESPONSE--CREATENEWUSER--SUCCESS--");
@@ -230,6 +237,10 @@ public class Server implements Runnable {
 
                 } else if (findPart(searcher(clientParts[1], 0), 5).equals("YES")) {
                     outToClient.println("RESPONSE--LOGIN--USERALREADYLOGGEDIN--");
+                } else if(clientParts[0].equals("")||clientParts[1].equals("") ||
+                        clientParts[2].equals("")|| clientParts[2]==null){
+                    outToClient.println("RESPONSE--LOGIN--INVALIDMESSAGEFORMAT");
+
                 } else {
 
 
@@ -254,6 +265,8 @@ public class Server implements Runnable {
                 } else {
                     String key = addGameKey(clientParts[1]);
                     outToClient.println("RESPONSE--STARTNEWGAME--SUCCESS--" + key);
+                    gameKey=key;
+                    isLeader=true;
                     //if success, set player
                     //set private string to key
 
@@ -278,17 +291,40 @@ public class Server implements Runnable {
 
             if (clientParts[0].equals("ALLPARTICIPANTSHAVEJOINED")) {
 
-                outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTLOGGEDIN");
+                if(false) { //look over
+                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTLOGGEDIN");
+                }
                 //if logged in and have same game key for 2 peeps
-                outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--INVALIDGAMETOKEN");
+                else if(!gameKey.equals(clientParts[2])) {
+                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--INVALIDGAMETOKEN");
+                }
                 //not equal game leader gametoken
-                outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTGAMELEADER");
-                //private boolean
+                else if(!isLeader) {
+                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTGAMELEADER");
+                } else{
+
+                }
+
 
             }
 
 
             if (clientParts[0].equals("PLAYERSUGGESTION")) {
+
+                if(!isLoggedIn){ //check hashcode
+                    outToClient.println("RESPONSE--PLAYERSUGGESTION--USERNOTLOGGEDIN");
+                } else if(false) { //game key not equal to current (from login method or as leader)
+                    outToClient.println("RESPONSE--PLAYERSUGGESTION--INVALIDGAMETOKEN");
+                } else if(false){ //unexpected message type (look over)
+
+                } else if(clientParts[0].equals("")||clientParts[1].equals("") ||
+                        clientParts[2].equals("")|| clientParts[2]==null){
+                    {outToClient.println("RESPONSE--PLAYERSUGGESTION--INVALIDMESSAGEFORMAT");}
+                } else{
+                    //store suggestions in Loginlist and run rowsearcher method
+                    outToClient.println("ROUNDOPTIONS--"); //write all suggestions
+                    //make method for this
+                }
 
 
             }
@@ -588,15 +624,14 @@ public class Server implements Runnable {
         LoginList.add((userName + ":" + password + ":0:0:0:NO:suggestion:choice: :NOPE:hashname"));
     }
 
-    public boolean nextScreenChecker(String input, String gameKey, int indexOfPart) throws InterruptedException { //adjust to check for people in each game
-        int counter = 0;
+    public boolean nextScreenChecker(String input, String gameKey, String hashCode, int indexOfPart) throws InterruptedException { //adjust to check for people in each game
         while (counter != LoginList.size()) { //make it so that after so many tries, stop working.
             Thread.sleep(2000); //check over
             for (int i = 0; i < LoginList.size(); i++) {
                 String temp = LoginList.get(i);
                 String[] parts = (LoginList.get(i)).split(":");
                 if (parts[indexOfPart].equals(input) && parts[9].equals(gameKey)) { //checks for players only in one game
-                    counter++;
+                    NextScreenCounter++;
                 }
             }
         }
@@ -604,7 +639,7 @@ public class Server implements Runnable {
     }
 
     public int[] loginRowSearch(String gameKey, int index) { //checks for all instances in Loginlist of players in one game
-        int counter = 0;
+        int counter=0;
         for (int i = 0; i < LoginList.size(); i++) {
             String temp = LoginList.get(i);
             String[] parts = (LoginList.get(i)).split(":");
@@ -626,5 +661,13 @@ public class Server implements Runnable {
         }
 
         return tempArray;
+    }
+
+    public String RoundOptions(String[] array){
+        String RoundOptions = "ROUNDOPTIONS";
+        for (String element : array){
+            RoundOptions+="--"+element;
+        }
+        return RoundOptions;
     }
 }
