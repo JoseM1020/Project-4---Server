@@ -1,21 +1,29 @@
 /*
- * @author Jose Muniz, Sam Klarquist
- * @version 1.00
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/**
+ *
+ * @author Sam Klarquist
  */
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//TODO: Write to file after user exits
+/**
+ * Created by JoseM on 11/12/2016.
+ */
 public class Server implements Runnable {
-    static int counter = 1; //aesthetics
-
     ServerSocket serverSocket = null;
     private Thread thread;
     Socket soc = null;
@@ -25,30 +33,46 @@ public class Server implements Runnable {
     String playersChoice;
     String player;
     String playerSuggestion;
-    boolean playingGame = false;
+    boolean playingGame=false;
     //gameList keeps track of all important information about a game
     static ArrayList<String> gameList;//game key:current question number:
     //LoginList keeps track of all important information about the user
-    static ArrayList<String> LoginList;//Username:loginstatus(YES or NO):suggestion:choice
-    static ArrayList<String> fileList = new ArrayList();//is the list from the file(updated using readUserList() method)
+    static ArrayList<String> LoginList;//there are eleven parts
+    static  ArrayList<String> fileList = new ArrayList();//is the list from the file(updated using readUserList() method)
     static ArrayList<String> questionList = new ArrayList();
     String lowercaseLetters = "qwertyuiopasdfghjklzxcvbnm";
     String uppercaseLetters = "QWERTYUIOPASDFGHJKLZXCVBNM";
     String alphabet = uppercaseLetters + lowercaseLetters;
+    boolean leaderIsWaiting=false;//just do it by using boolean variables and making them their own if statements
+    boolean isGameLeader=false;
+    int currentQuestion = 0;
+    String gameName;
+    String[] suggestionList;
+    String[] choiceList;
+    boolean waiting=false;
+    String waitingKey;
+    boolean isWaitingForStart=false;
+    private String cook = "";
+    PrintWriter fileWriter=null;
 
-    private String gameKey;
-    private boolean isLeader;
-    static int NextScreenCounter;
+    static String filePath = "C:\\Users\\Sam Klarquist\\Desktop\\" +
+            "file2.sql";
+    static String questionPath ="C:\\Users\\Sam Klarquist\\Desktop\\" +
+            "file2.sql";
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(6000);
 
 
-        LoginList = new ArrayList<String>();
-        gameList = new ArrayList<String>();
 
 
-        readUserList();
+        LoginList=new  ArrayList<String>();
+        gameList=new ArrayList<String>();
+
+
+
+
+        readUserList() ;
 
 
         //should contain in the first array the game token in the second contains the usernames
@@ -56,10 +80,8 @@ public class Server implements Runnable {
         //comment
         System.out.println("Listening on socket 5000");
 
-        while (true) {
+        while(true){
             Socket socket = serverSocket.accept();
-            System.out.println("Connection accepted! Thread " + counter + " now starting..." );
-                counter++;
             Server server = new Server();
             server.setSock(socket);
             Thread thread = new Thread(server);
@@ -67,22 +89,23 @@ public class Server implements Runnable {
         }
 
 
+
+
     }
 
-    public void setSock(Socket soc) {
-        this.soc = soc;
+    public void setSock(Socket soc){
+        this.soc=soc;
     }
 
 
-    public Server() {
+    public Server(){
+
 
 
     }
 
     @Override
-    public void run() {
-        BufferedReader inFromClient = null;
-        PrintWriter outToClient = null;
+    public void run() { BufferedReader inFromClient = null; PrintWriter outToClient = null;
         BufferedReader fileReader = null;
         PrintWriter fileWriter = null;
         String line;
@@ -111,7 +134,7 @@ public class Server implements Runnable {
         }
 
 
-        while (true) {//change this to a variable latter but need to make it to infinite loop for now to test things
+        while(true){//change this to a variable latter but need to make it to infinite loop for now to test things
 
             //change the file path to check on your side
       /*  try {
@@ -132,66 +155,109 @@ public class Server implements Runnable {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }*/
 
+            if(leaderIsWaiting){
+
+                outToClient.println("NEWPARTICIPANT--Alice--0");
+
+            }
+
+
+            while(isWaitingForStart){
+
+
+            }
+
+            while(waiting){
+                int counts = 0;
+                for(int i = 0; i<suggestionList.length;){
+                    if(suggestionList.equals("NOPE")){
+                        counts++;
+                    }
+
+                }
+                if(counts>0){
+                    getSuggestionsList(waitingKey);
+
+                }
+                else{
+                    waiting=false;
+                }
+
+
+
+
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+
+
+
 
             try {
                 fromClient = inFromClient.readLine();
             } catch (IOException ex) {
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
-            if (fromClient != null) {
-                System.out.println(fromClient);
-            }
+
+            System.out.println(fromClient);
+
             clientParts = fromClient.split("--");
+
             //message format check
             if (clientParts[0].equals("CREATENEWUSER")) { //parts are being formatted correctly
 
+                if(clientParts.length==3){
+                    for (int i = 0; i < fileList.size(); i++) {
+                        parts = fileList.get(i).split(":");
+                        if (searchForPlayer(clientParts[1])==-1) {
+                            outToClient.println("RESPONSE--CREATENEWUSER--USERALREADYEXISTS--");
+                            System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--USERALREADYEXISTS--");
 
-                for (int i = 0; i < fileList.size(); i++) {
-                    parts = fileList.get(i).split(":");
-                    if (searchForPlayer(clientParts[1]) == -1) {
-                        outToClient.println("RESPONSE--CREATENEWUSER--USERALREADYEXISTS--");
-                        System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--USERALREADYEXISTS--");
+                        }
 
                     }
 
-                }
 
 
-                Matcher user = username.matcher(clientParts[1]);
-                Matcher pwChar = username.matcher(clientParts[2]);
-                Matcher pwSymb = password.matcher(clientParts[2]);
-                Matcher pwUp = passwordUp.matcher(clientParts[2]);
-                Matcher pwDig = passwordDig.matcher(clientParts[2]);
-                boolean u = user.find();
-                boolean p1 = pwChar.find();
-                boolean p2 = pwSymb.find();
-                boolean p3 = pwUp.find();
-                boolean p4 = pwDig.find();
-                boolean pwCreds;
-                if (p1 && p2 && p3 && p4) {
-                    pwCreds = true;
-                } else {
-                    pwCreds = false;
-                }
+                    Matcher user = username.matcher(clientParts[1]);
+                    Matcher pwChar = username.matcher(clientParts[2]);
+                    Matcher pwSymb = password.matcher(clientParts[2]);
+                    Matcher pwUp = passwordUp.matcher(clientParts[2]);
+                    Matcher pwDig = passwordDig.matcher(clientParts[2]);
+                    boolean u = user.find();
+                    boolean p1 = pwChar.find();
+                    boolean p2 = pwSymb.find();
+                    boolean p3 = pwUp.find();
+                    boolean p4 = pwDig.find();
+                    boolean pwCreds;
+                    if (p1 && p2 && p3 && p4) {
+                        pwCreds = true;
+                    } else {
+                        pwCreds = false;
+                    }
 
-                if (searchForPlayer(clientParts[1]) != -1 || clientParts[1].length() >= 10 || u) {
-                    outToClient.println("RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
-                    System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
-                } else if (searchForPassword(clientParts[2]) != -1 || clientParts[2].length() >= 10 || pwCreds) {
-                    outToClient.println("RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
-                    System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
-                } else if(clientParts[0].equals("")||clientParts[1].equals("") ||
-                        clientParts[2].equals("")|| clientParts[2]==null){
-                    outToClient.println("RESPONSE--CREATENEWUSER--INVALIDMESSAGEFORMAT");
-                } else {
-                    System.out.println(clientParts[1]);
-                    outToClient.println("RESPONSE--CREATENEWUSER--SUCCESS--");
-                    System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--SUCCESS--");
+                    if (searchForPlayer(clientParts[1])!=-1 || clientParts[1].length() >= 10 || u) {
+                        outToClient.println("RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
+                        System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
+                    } else if (searchForPassword(clientParts[2])!=-1 || clientParts[2].length() >= 10 || pwCreds) {
+                        outToClient.println("RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
+                        System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--INVALIDPASSWORD--");
+                    } else {
+                        System.out.println(clientParts[1]);
+                        outToClient.println("RESPONSE--CREATENEWUSER--SUCCESS--");
+                        System.out.println("OUT TO CLIENT:RESPONSE--CREATENEWUSER--SUCCESS--");
 
-                    createNewUser(clientParts[1], clientParts[2]);
+                        createNewUser(clientParts[1] , clientParts[2]);
 
 
-                }
+                    }
+
+                }else{outToClient.println("RESPONSE--CREATENEWUSER--INVALIDMESSAGEFORMAT--");}
 /*
             if (clientParts[1].equals("") || clientParts[1].length() >= 10 || u) {
                 outToClient.println("RESPONSE--CREATENEWUSER--INVALIDUSERNAME--");
@@ -227,81 +293,89 @@ public class Server implements Runnable {
                     counterP++;
                 }
 
-                if (searcher(clientParts[1], 0) == -1 || fileList == null) {
+                int place =  searcher(clientParts[1],0);//this is the place where the user can be found
+
+                if (place==-1 || fileList == null) {
                     outToClient.println("RESPONSE--LOGIN--UNKNOWNUSER--");
                     System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--UNKNOWNUSER--");
 
-                } else if (searcher(clientParts[2], 1) == -1) {
+
+                }
+
+                else if (!findPart(place,1).equals(clientParts[2])) {
                     outToClient.println("RESPONSE--LOGIN--INVALIDPASSWORD--");
                     System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--INVALIDPASSWORD--");
 
-                } else if (findPart(searcher(clientParts[1], 0), 5).equals("YES")) {
+                }
+                else if(findPart(place,5).equals("YES")){
                     outToClient.println("RESPONSE--LOGIN--USERALREADYLOGGEDIN--");
-                } else if(clientParts[0].equals("")||clientParts[1].equals("") ||
-                        clientParts[2].equals("")|| clientParts[2]==null){
-                    outToClient.println("RESPONSE--LOGIN--INVALIDMESSAGEFORMAT");
+                }
 
-                } else {
+                else {
 
 
                     System.out.println(clientParts[1]);
-                    System.out.println(searcher(clientParts[1], 0));
-                    replacePart(searcher(clientParts[1], 0), 5, "YES");
-                    String cook = createSesionCookie();
-                    System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--SUCCESS--" + cook);
-                    replacePart(searcher(clientParts[1], 0), 10, cook);
-                    outToClient.println("RESPONSE--LOGIN--SUCCESS--" + cook);
+                    System.out.println (searcher(clientParts[1],0));
+                    replacePart(searcher(clientParts[1],0),5,"YES");
+                    cook = createSesionCookie();
+                    System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--SUCCESS--"+cook);
+                    replacePart(searcher(clientParts[1],0),10,cook);
+                    outToClient.println("RESPONSE--LOGIN--SUCCESS--"+cook);
                     //TODO: Check if user logged in
                 }
                 //TODO: check if user already logged in (before success)
             }
 
             if (clientParts[0].equals("STARTNEWGAME")) {
-                if (!findPart(searcher(clientParts[1], 10), 5).equals("YES")) {
+                int place =  searcher(clientParts[1],10);
+                if (!findPart(searcher(clientParts[1],10),5).equals("YES")) {
 
                     outToClient.println("RESPONSE--STARTNEWGAME--USERNOTLOGGEDIN--");
-                } else if (alreadyPlaying(clientParts[1])) {//need something to check if user already playing a game
-                    outToClient.println("RESPONSE--STARTNEWGAME--FAILURE--"); //set a string in login list for playing player
-                } else {
-                    String key = addGameKey(clientParts[1]);
-                    outToClient.println("RESPONSE--STARTNEWGAME--SUCCESS--" + key);
-                    gameKey=key;
-                    isLeader=true;
-                    //if success, set player
-                    //set private string to key
-
+                }
+                else if(alreadyPlaying(clientParts[1])){//need something to check if user already playing a game
+                    outToClient.println("RESPONSE--STARTNEWGAME--FAILURE--");
+                }
+                else{
+                    String key=   addGameKey(clientParts[1]);
+                    outToClient.println("RESPONSE--STARTNEWGAME--SUCCESS--"+key);
+                    leaderIsWaiting=true;
+                    isGameLeader=true;
+                    gameName = key;
+                    //while loop to keep track of new participants
 
                 }
             }
 
             if (clientParts[0].equals("JOINGAME")) {
+                int place =  searcher(clientParts[1],10);
+                if(  !findPart(place,5).equals("YES")){
+                    outToClient.println("RESPONSE--JOINGAME--USERNOTLOGGEDIN");}
 
-                if (!isLogged(clientParts[1])) {
-                    outToClient.println("RESPONSE--JOINGAME--USERNOTLOGGEDIN");
-                } else if (searchGameKey(clientParts[2]) == -1) {//need to add
-                    outToClient.println("RESPONSE--JOINGAME--GAMEKEYNOTFOUND");
-                } else if (alreadyPlaying(clientParts[1])) {
-                    outToClient.println("RESPONSE--JOINGAME--FAILURE");
-                } else {//do something to add user to gameList
-                    outToClient.println("RESPONSE--JOINGAME--SUCCESS");
+                else if(searchGameKey(clientParts[2])==-1){//need to add
+                    outToClient.println("RESPONSE--JOINGAME--GAMEKEYNOTFOUND");}
+                else if(alreadyPlaying(clientParts[1])){
+                    outToClient.println("RESPONSE--JOINGAME--FAILURE");}
+                else{//do something to add user to gameList
+                    outToClient.println("RESPONSE--JOINGAME--SUCCESS--"+clientParts[2]);
+                    replacePart(place,9,clientParts[2]);
+
+                    isWaitingForStart=true;
+
                 }
-                //if success, set string in login for playing game to yes
 
             }
 
             if (clientParts[0].equals("ALLPARTICIPANTSHAVEJOINED")) {
+                int place =  searcher(clientParts[1],10);
+                if(!findPart(place,5).equals("YES")){
+                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTLOGGEDIN");}
+                else if(searcher(clientParts[2],9)==-1){
+                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--INVALIDGAMETOKEN");}
+                else if(!isGameLeader&&!gameName.equals(clientParts[2])){
+                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTGAMELEADER");}
+                else{
+                    newGameWord();
 
-                if(false) { //look over
-                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTLOGGEDIN");
-                }
-                //if logged in and have same game key for 2 peeps
-                else if(!gameKey.equals(clientParts[2])) {
-                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--INVALIDGAMETOKEN");
-                }
-                //not equal game leader gametoken
-                else if(!isLeader) {
-                    outToClient.println("RESPONSE--ALLPARTICIPANTSHAVEJOINED--USERNOTGAMELEADER");
-                } else{
 
                 }
 
@@ -310,10 +384,12 @@ public class Server implements Runnable {
 
 
             if (clientParts[0].equals("PLAYERSUGGESTION")) {
+                int place =  searcher(clientParts[1],10);
 
-                if(!isLoggedIn){ //check hashcode
+
+                if(!findPart(place,5).equals("YES")){ //check hashcode
                     outToClient.println("RESPONSE--PLAYERSUGGESTION--USERNOTLOGGEDIN");
-                } else if(false) { //game key not equal to current (from login method or as leader)
+                } else if(searchGameKey(clientParts[2])==-1) { //game key not equal to current (from login method or as leader)
                     outToClient.println("RESPONSE--PLAYERSUGGESTION--INVALIDGAMETOKEN");
                 } else if(false){ //unexpected message type (look over)
 
@@ -322,31 +398,70 @@ public class Server implements Runnable {
                     {outToClient.println("RESPONSE--PLAYERSUGGESTION--INVALIDMESSAGEFORMAT");}
                 } else{
                     //store suggestions in Loginlist and run rowsearcher method
+                    waiting =true;
+
                     outToClient.println("ROUNDOPTIONS--"); //write all suggestions
                     //make method for this
                 }
-
 
             }
 
             if (clientParts[0].equals("PLAYERCHOICE")) {
 
-                if (clientParts[1].equals("")) {//username is logged in and in the database(need to create a method for it)
 
+                if(clientParts.length==3){
+                    int place =  searcher(clientParts[1],10);//this is the place where the user can be found
+
+                    if (place==-1 || fileList == null) {
+                        outToClient.println("RESPONSE--PLAYERCHOICE--UNKNOWNUSER--");
+                        System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--UNKNOWNUSER--");
+
+
+                    }
+
+                    else if (!findPart(place,9).equals(clientParts[2])) {
+                        outToClient.println("RESPONSE--PLAYERCHOICE--INVALIDGAMETOKEN--");
+                        System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--INVALIDPASSWORD--");
+
+                    }
+                    //do it by making variable that does it array
+                    else if(findPart(place,5).equals("YES")){
+                        outToClient.println("RESPONSE--PLAYERCHOICE--UNEXPECTEDMESSAGETYPE--");
+
+                    }
+
+                    else {
+
+
+                        System.out.println(clientParts[1]);
+                        System.out.println (searcher(clientParts[1],0));
+                        replacePart(searcher(clientParts[1],0),5,"YES");
+                        String cook = createSesionCookie();
+                        System.out.println("OUT TO CLIENT:RESPONSE--LOGIN--SUCCESS--"+cook);
+                        replacePart(searcher(clientParts[1],0),10,cook);
+                        outToClient.println("RESPONSE--PLAYERCHOICE--SUCCESS--"+cook);
+                        //TODO: Check if user logged in
+                    }
+
+
+                }else{
+                    outToClient.println("RESPONSE--PLAYERCHOICE--INVALIDMESSAGEFORMAT--");
                 }
-
             }
 
             //this should if the logout comand is given check wether the user was logged in or not then spit back the appropriate response
             if (clientParts[0].equals("LOGOUT")) {
-                if (isLoggedIn == true) {
-                    isLoggedIn = false;
+                if(isLoggedIn==true){
+                    isLoggedIn=false;
                     outToClient.println("RESPONSE--LOGOUT--SUCCESS--");
-                } else {
+                }
+                else{
                     outToClient.println("RESPONSE--LOGOUT--USERNOTLOGGEDIN--");
                 }
 
             }
+
+
 
 
         }
@@ -359,11 +474,11 @@ public class Server implements Runnable {
     }
 
 
-    static public void readQuestions() throws FileNotFoundException, IOException {
 
-        String filePath = new String("C:\\Users\\JoseM\\Desktop\\cs180\\Projects\\" +
-                "Project-4---Server\\database\\questions.txt");
-        BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
+
+    static public void readQuestions()throws FileNotFoundException, IOException{
+
+        BufferedReader  fileReader = new BufferedReader(new FileReader(questionPath));
 
         String line;
         String quest;
@@ -379,10 +494,8 @@ public class Server implements Runnable {
 
     }
 
-    static public void readUserList() throws FileNotFoundException, IOException {
-        String filePath = new String("C:\\Users\\JoseM\\Desktop\\cs180\\Projects" +
-                "\\Project-4---Server\\database\\database.txt");
-        BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
+    static public void readUserList() throws FileNotFoundException, IOException{
+        BufferedReader  fileReader = new BufferedReader(new FileReader(filePath));
         LoginList = new ArrayList();
         String line;
         String[] parts = null;
@@ -392,8 +505,7 @@ public class Server implements Runnable {
             System.out.println(line);
             parts = line.split(":");
 
-            LoginList.add((line + ":NO:suggestion:choice: :NOPE:hashname"));//Username:loginstatus(YES or NO):suggestion:choice:meesage:playing(gameKey or NOPE):hashname
-            //possibly add suggestion indicators EX. suggestion:1, first suggestion, suggestion:2, second suggestion
+            LoginList.add((line+":NO:suggestion:choice:messagetouser:NOPE:hashname:wait"));//Username:loginstatus(YES or NO):suggestion:choice:meesage:playing(gameKey or NOPE):hashname:wait/start
 
             System.out.println(LoginList);
 
@@ -405,28 +517,26 @@ public class Server implements Runnable {
         fileReader.close();
 
     }
-
     //returns the string with the proper game word might require int to keep track of which question needs getting
-    public String gameWord(int num) {
+    public String newGameWord(){
 
-        return "NEWGAMEWORD--" + questionList.get(num);
+        return "NEWGAMEWORD--"+questionList.get(currentQuestion++);
 
     }
 
     //adds a new game
-    public void gameTokenAdder(String token, String leader) {
+    public void gameTokenAdder(String token, String leader){
 
-        gameList.add(token + ":" + leader);
+        gameList.add(token+":"+leader);
 
     }
-
     //this will return back a number >=0 and if it doesn't then it isn't on the list
-    public int searchGameKey(String gameKey) {
+    public int searchGameKey(String gameKey){
         String[] part;
-        for (int i = 0; i < gameList.size(); i++) {
-            part = gameList.get(i).split(":");
+        for(int i=0; i<gameList.size();i++){
+            part= gameList.get(i).split(":");
 
-            if (part[0].equals(gameKey)) {
+            if(part[0].equals(gameKey)){
                 return i;
             }
         }
@@ -436,25 +546,36 @@ public class Server implements Runnable {
 
     }
 
-    public String addGameKey(String hashName) {
+    public String addGameKey(String hashName){
 
-        String gameKey = createGameToken();
-        replacePart(searchForPlayer(hashName), 9, gameKey + ":");
+        String gameKey= createGameToken();
+        replacePart(searchForPlayer(hashName), 9,gameKey+":");
 
-        gameList.add(gameKey + ":");
+        gameList.add(gameKey+":");
         return gameKey;
     }
 
-    public void addGameUser(String hashName) {
+    public void addGameUser(String hashName, String gameKey){
+
+        String temp =   gameList.get(searchGameKey(gameKey));
+
+        String[] parts = temp.split(":");
+
+
+        temp="";
+        for(int i=0; i<parts.length;i++){
+            temp+=parts[i];
+        }
+        temp+=":"+hashName;
 
     }
 
-    public int searchForPlayer(String hashName) {
+    public int searchForPlayer(String hashName){
         String[] part;
-        for (int i = 0; i < LoginList.size(); i++) {
-            part = LoginList.get(i).split(":");
+        for(int i=0; i<LoginList.size();i++){
+            part= LoginList.get(i).split(":");
 
-            if (part[10].equals(hashName)) {
+            if(part[10].equals(hashName)){
                 return i;
             }
         }
@@ -464,12 +585,12 @@ public class Server implements Runnable {
 
     }
 
-    public int searchForPassword(String password) {
+    public int searchForPassword(String password){
         String[] part;
-        for (int i = 0; i < LoginList.size(); i++) {
-            part = LoginList.get(i).split(":");
+        for(int i=0; i<LoginList.size();i++){
+            part= LoginList.get(i).split(":");
 
-            if (part[1].equals(password)) {
+            if(part[1].equals(password)){
                 return i;
             }
         }
@@ -478,14 +599,13 @@ public class Server implements Runnable {
 
 
     }
-
     //this can be used to search for anything on the game list (0): username, (1) password, (2)
-    public int searcher(String thing, int num) {
+    public int searcher(String thing,int num){
         String[] part;
-        for (int i = 0; i < LoginList.size(); i++) {
-            part = LoginList.get(i).split(":");
+        for(int i=0; i<LoginList.size();i++){
+            part= LoginList.get(i).split(":");
 
-            if (part[num].equals(thing)) {
+            if(part[num].equals(thing)){
                 return i;
             }
         }
@@ -494,14 +614,13 @@ public class Server implements Runnable {
 
 
     }
-
     //method in progress
-    public String gitter(String thing, int num) {
+    public String gitter(String thing,int num){
         String[] part;
-        for (int i = 0; i < LoginList.size(); i++) {
-            part = LoginList.get(i).split(":");
+        for(int i=0; i<LoginList.size();i++){
+            part= LoginList.get(i).split(":");
 
-            if (part[num].equals(thing)) {
+            if(part[num].equals(thing)){
                 return part[i];
             }
         }
@@ -510,40 +629,39 @@ public class Server implements Runnable {
 
 
     }
-
     //num is the specific list and thing specifies where in the string the thing is being replaced
-    public void replacePart(int num, int thing, String replacer) {
+    public void replacePart(int num, int thing,String replacer){
 
         System.out.println(LoginList);
-        String temp = LoginList.get(num);
+        String temp=LoginList.get(num);
         System.out.println(temp);
-        String[] part = temp.split(":");
+        String[] part= temp.split(":");
 
-        temp = "";
-        for (int i = 0; i < part.length; i++) {
-            if (i != thing) {
-                temp += part[i];
-            } else {
+        temp="";
+        for(int i=0;i<part.length;i++){
+            if(i!=thing){
+                temp+=part[i];}
+            else{
                 //  System.out.print(replacer);
-                temp += replacer;
+                temp+=replacer;
             }
-            if (i < part.length - 1) {
-                temp += ":";
+            if(i<part.length-1){
+                temp+=":";
             }
         }
 
-        LoginList.set(num, temp);
+        LoginList.set(num,temp);
 
     }
 
-    public String findPart(int num, int thing) {
+    public String findPart(int num, int thing){
 
         System.out.println(LoginList);
-        String temp = LoginList.get(num);
+        String temp=LoginList.get(num);
         System.out.println(temp);
-        String[] part = temp.split(":");
+        String[] part= temp.split(":");
 
-        temp = "";
+        temp="";
 
         temp = part[thing];
 
@@ -551,45 +669,94 @@ public class Server implements Runnable {
 
     }
 
-    public boolean isLogged(String a) {
+    public boolean isLogged(String a){
 
         int num = searchGameKey(a);
 
-        if (num == -1) {
-            String[] parts = LoginList.get(num).split(":");
+        if(num==-1){
+            String[] parts=LoginList.get(num).split(":");
 
 
-            if (parts[5].equals("YES")) {
+            if(parts[5].equals("YES")){
                 return true;
-            }
-        }
+            }}
 
         return false;
     }
 
-    public void Fooled(String gameKey, String players) {
+    public void Fooled(String gameKey, String players){
+        getSuggestionsList(gameKey);
+        String[] userList =   getAUserList(gameKey, 10);
+        String[] choiceList =   getAUserList(gameKey, 7);
+        int[] points= new int[userList.length];
+        String[] message = new String[userList.length];
+        String answer= questionList.get(currentQuestion);
+
+
+        for(int k=0; k<userList.length;k++){
+            int plave =searcher(userList[k],10);
+            points[k]= Integer.parseInt(findPart(plave,2));
+            message[k]="";
+
+        }
+
+        for(int i =0; i<userList.length;i++){
+            for(int j =0; j<userList.length;j++){
+                if(choiceList[i].equals(answer)){}
+                if(suggestionList[i].equals(choiceList[j])){
+                    points[]
+
+                }
+
+
+            }
+        }
+
+    }
+
+    public String[] getSuggestionsList(String gameKey){
+
+        int[] listPlayers= loginRowSearch(gameKey,9); //fix
+        suggestionList =new String[listPlayers.length];
+        for(int i=0;i<suggestionList.length;i++){
+            suggestionList[i]= findPart(listPlayers[i],6);}
+
+        return suggestionList;
+    }
+    //if num 10 returns a list of hashnames
+    public String[] getAUserList(String gameKey, int num){
+        int[] listPlayers= loginRowSearch(gameKey,9);
+        String[] hashnameList=new String[listPlayers.length];
+        for(int i=0;i<hashnameList.length;i++){
+            hashnameList[i]= findPart(listPlayers[i],num);}
+
+        return hashnameList;
+    }
+
+    public void Fooler(String gameKey, String players){
 
 
     }
 
-    public void Fooler(String gameKey, String players) {
 
+    public String RoundResults(String[] array){
+
+        String RoundOptions = "ROUNDRESULTS";
+        for (String element : array){
+            RoundOptions+="--"+element;
+        }
+        return RoundOptions;
 
     }
 
-    public String RoundOptions() {
+    public boolean alreadyPlaying(String hashname){
+        int num  = searcher(hashname,10);
+        if(num!=-1){
 
-
-        return "";
-    }
-
-    public boolean alreadyPlaying(String hashname) {
-        int num = searcher(hashname, 10);
-        if (num != -1) {
-
-            if (findPart(num, 9).equals("NOPE")) {
+            if(findPart(num,9).equals("NOPE")){
                 return false;
-            } else {
+            }
+            else{
                 return true;
             }
 
@@ -598,7 +765,7 @@ public class Server implements Runnable {
         return false;
     }
 
-    public String createSesionCookie() {
+    public String createSesionCookie(){
         Random r = new Random();
         String sessionCookie = "";
         for (int i = 0; i < 10; i++) {
@@ -608,8 +775,7 @@ public class Server implements Runnable {
         return sessionCookie;
 
     }
-
-    public String createGameToken() {
+    public String createGameToken(){
         Random r = new Random();
         String gameToken = "";
         for (int i = 0; i < 3; i++) {
@@ -620,54 +786,78 @@ public class Server implements Runnable {
         return gameToken;
     }
 
-    public void createNewUser(String userName, String password) {
-        LoginList.add((userName + ":" + password + ":0:0:0:NO:suggestion:choice: :NOPE:hashname"));
+    public void createNewUser(String userName, String password){
+        LoginList.add((userName+":"+password +":0:0:0:NO:suggestion:choice:messagetouser:NOPE:hashname:wait"));
     }
 
-    public boolean nextScreenChecker(String input, String gameKey, String hashCode, int indexOfPart) throws InterruptedException { //adjust to check for people in each game
+    public void scoreUpdater(){ //updates score for all players: use row search method to find instances of players
+
+    }
+
+    public boolean nextScreenChecker(String input, String gameKey, int indexOfPart) throws InterruptedException { //adjust to check for people in each game
+        int counter = 0;
         while (counter != LoginList.size()) { //make it so that after so many tries, stop working.
             Thread.sleep(2000); //check over
             for (int i = 0; i < LoginList.size(); i++) {
                 String temp = LoginList.get(i);
                 String[] parts = (LoginList.get(i)).split(":");
                 if (parts[indexOfPart].equals(input) && parts[9].equals(gameKey)) { //checks for players only in one game
-                    NextScreenCounter++;
+                    counter++;
                 }
             }
         }
         return true;
     }
 
-    public int[] loginRowSearch(String gameKey, int index) { //checks for all instances in Loginlist of players in one game
-        int counter=0;
+    public int loginRowSearch(String hashCode, int index) { //returns index of player from hashcode
+        int userLine = 0;
         for (int i = 0; i < LoginList.size(); i++) {
             String temp = LoginList.get(i);
             String[] parts = (LoginList.get(i)).split(":");
-            if (parts[index].equals(gameKey)) { //checks for players only in one game
-                counter++;
+            if (parts[index].equals(hashCode)) { //checks for players only in one game
+                userLine = i;
             }
 
         }
-        int[] tempArray = new int[counter];
-        counter = 0;
-        for (int i = 0; i < LoginList.size(); i++) {
-            String temp = LoginList.get(i);
-            String[] parts = (LoginList.get(i)).split(":");
-            if (parts[index].equals(gameKey)) { //checks for players only in one game
-                tempArray[counter] = i;
-                counter++;
+        return userLine;
+    }
+
+    public String[] shuffler(){
+        ArrayList<String> suggest = new ArrayList<>();
+
+
+        //trun in to arraylist
+        for(int i = 0; i<choiceList.length;i++){
+            suggest.add(choiceList[i]);
+        }
+        Collections.shuffle(suggest);
+        for (int i = 0; i<choiceList.length;i++){
+            choiceList[i]=suggest.get(i);
+        }
+
+        //turn back in to array
+
+      return choiceList;
+    }
+
+
+      public void writeToFile() throws IOException { //remove, update and append to array list then write to file
+
+        if(isGameLeader) { //only make game leader write to file to prevent multiple people from writing
+            fileWriter = new PrintWriter(new BufferedWriter(new FileWriter(filePath, false)));
+
+            //remove and append new info from arraylist(through "line") and write over line in file
+
+            for (String element : fileList) {
+                fileWriter.println(element);
             }
 
+
+            fileWriter.close();
         }
 
-        return tempArray;
-    }
 
-    public String RoundOptions(String[] array){
-        String RoundOptions = "ROUNDOPTIONS";
-        for (String element : array){
-            RoundOptions+="--"+element;
-        }
-        return RoundOptions;
-    }
+
+}
+
 }
