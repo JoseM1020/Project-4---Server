@@ -40,6 +40,7 @@ public class Server implements Runnable {
     static Pattern password = Pattern.compile("[^a-zA-Z0-9#&$*]+");
     static Pattern passwordUp = Pattern.compile("[A-Z]");
     static Pattern passwordDig = Pattern.compile("[0-9]");
+    static ArrayList<String> temp = new ArrayList<>();
 
     static int threadCount = 1;
     static BufferedReader fileReader = null;
@@ -57,7 +58,7 @@ public class Server implements Runnable {
         String[] parts;
         try {
             while ((line = fileReader.readLine()) != null) { //displaying registered users and adding to array
-                fileList.add(line);
+                temp.add(line);
                 parts = line.split(":");
                 System.out.println("Added user: " + parts[0]);
                 System.out.println("Read in user: " + line);
@@ -84,7 +85,7 @@ public class Server implements Runnable {
         while (true) {
             Socket socket = serverSocket.accept();
             System.out.println("Connection accepted! Thread " + threadCount + "now starting...");
-                threadCount++;
+            threadCount++;
             Server server = new Server();
             server.setSock(socket);
             Thread thread = new Thread(server);
@@ -163,7 +164,12 @@ public class Server implements Runnable {
                         isWaitingForStart = false;
                         getSuggestionsList(waitingKey);
 
-                        outToClient.println(newGameWord());
+                        if(currentQuestion<questionList.size()){
+                            outToClient.println(   newGameWord());}
+                        else{
+                            outToClient.println("GAMEOVER");
+
+                        }
                         //  outToClient.println( roundOptions(suggestionList));
                     }
 
@@ -235,10 +241,16 @@ public class Server implements Runnable {
 
 
                     Fooled(waitingKey);
+                    boolean gameOver=false;
 
 
                     outToClient.println(RoundResults());
-                    outToClient.println(newGameWord());
+                    if(currentQuestion<questionList.size()){
+                        outToClient.println(   newGameWord());}
+                    else{
+                        outToClient.println("GAMEOVER");
+                        gameOver=true;
+                    }
                     if (isGameLeader) {
                         for (int g = 0; g < LoginList.size(); g++) {
                             String[] parser = LoginList.get(g).split(":");
@@ -270,6 +282,12 @@ public class Server implements Runnable {
                         replacePart(group[i], 7, "choice");
                         replacePart(group[i], 8, "message");
                         replacePart(group[i], 11, "WAIT");
+
+                        if(gameOver==true){
+                            replacePart(group[i],9,"NOPE");
+                            finish=false;
+
+                        }
                     }
                     waiter = false;
 
@@ -299,13 +317,13 @@ public class Server implements Runnable {
             if (clientParts[0].equals("CREATENEWUSER")) { //parts are being formatted correctly
                 boolean userAlreadyExists = false;
                 if (clientParts.length == 3) {
-                    for (int i = 0; i < fileList.size(); i++) {
-                        if ((searcher(clientParts[1], 0) != -1)) {
-                            userAlreadyExists = true;
 
-                        }
+                    if ((searcher(clientParts[1], 0) != -1)) {
+                        userAlreadyExists = true;
 
                     }
+
+
 
 
                     Matcher user = username.matcher(clientParts[1]);
@@ -940,3 +958,4 @@ public class Server implements Runnable {
         return array;
     }
 }
+
