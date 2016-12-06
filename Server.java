@@ -519,7 +519,7 @@ public class Server implements Runnable {
                     } else {
 
 
-                        outToClient.println("RESPONSE--PLAYERCHOICE--SUCCESS--");
+
 
 
                         replacePart(place, 7, clientParts[3]);
@@ -746,7 +746,7 @@ public class Server implements Runnable {
         for (int i = 0; i < userList.length; i++) {
             if (chossen[i].equals(ans[1])) {
                 points[i] += 10;
-                message[i] += "you got it right.";
+                message[i] += "You got it right!";
             }
 
             for (int j = 0; j < suggested.length; j++) {
@@ -754,8 +754,8 @@ public class Server implements Runnable {
                     points[j] += 5;
                     fooled[j]++;
                     fooledby[i]++;
-                    message[i] += " you were fooled by " + userList[j];
-                    message[j] += " you fooled " + userList[i];
+                    message[i] += " You were Fooled by " + userList[j];
+                    message[j] += " You Fooled " + userList[i] + " ";
                 }
             }
 
@@ -927,7 +927,7 @@ public class Server implements Runnable {
     }
 
     public void writeToFile() throws IOException { //remove, update and append to array list then write to file
-        String filePath = "C:\\Users\\Sam Klarquist\\Desktop\\file1.sql";
+        String filePath = "C:\\Users\\JoseM\\Desktop\\cs180\\Projects\\Project-4---Server\\database\\database.txt";
         //only make game leader write to file to prevent multiple people from writing
         PrintWriter fileWriter = new PrintWriter(new BufferedWriter(new FileWriter(filePath, false)));
         //remove and append new info from arraylist(through "line") and write over line in file
